@@ -1,5 +1,5 @@
 heat_template_version: 2015-04-30
-description: Installs Nginx
+description: Installs HAProxy
 
 parameters:
 
@@ -22,14 +22,18 @@ parameters:
     description: "Exceptions to proxy configuration"
     default: ''
 
-  delete_default_vhost:
-    type: boolean
-    default: True
-
-  default_index_page:
+  global_config:
     type: string
-    description: HTML code for the default index.html
-    default: ''
+    description: Global HAproxy configuration options
+    default: ""
+
+  default_config:
+    type: string
+    description: Default HAproxy configuration options
+    default: ""
+
+  listener_configs:
+    type: comma_delimited_list
 
 resources:
 
@@ -47,8 +51,10 @@ resources:
       group: script
       config: { get_file: scripts/centos/2_configure.sh }
       inputs:
-        - name: DELETE_DEFAULT_VHOST # Boolean is not working with Bash scripts
-        - name: DEFAULT_INDEX_PAGE
+        - name: GLOBAL_CONFIG
+        - name: DEFAULT_CONFIG
+        - name: LISTENER_CONFIGS
+          type: CommaDelimitedList
 
   # SOFTWARE DEPLOYMENTS
 
@@ -73,8 +79,9 @@ resources:
         http_proxy: { get_param: http_proxy }
         https_proxy: { get_param: https_proxy }
         no_proxy: { get_param: no_proxy }
-        DELETE_DEFAULT_VHOST: { get_param: delete_default_vhost }
-        DEFAULT_INDEX_PAGE: { get_param: default_index_page }
+        GLOBAL_CONFIG: { get_param: global_config }
+        DEFAULT_CONFIG: { get_param: default_config }
+        LISTENER_CONFIGS: { get_param: listener_configs }
     depends_on:
       - deploy_install
 
