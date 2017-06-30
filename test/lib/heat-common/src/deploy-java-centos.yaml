@@ -1,0 +1,47 @@
+heat_template_version: 2015-04-30
+
+parameters:
+
+  server_map:
+    type: json
+    description: Map of servers to be used with OS::Heat::SoftwareDeploymentGroup
+
+  http_proxy:
+    type: string
+    description: "HTTP proxy URL"
+    default: ''
+
+  https_proxy:
+    type: string
+    description: "HTTPS proxy URL"
+    default: ''
+
+  no_proxy:
+    type: string
+    description: "Exceptions to proxy configuration"
+    default: ''
+
+resources:
+
+  install_java:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      group: script
+      config: { get_file: scripts/centos/install-java.sh }
+      inputs:
+        - name: http_proxy
+        - name: https_proxy
+        - name: no_proxy
+
+  deploy_install_java:
+    type: OS::Heat::SoftwareDeploymentGroup
+    properties:
+      config: { get_resource: install_java }
+      servers: { get_param: server_map }
+      signal_transport: HEAT_SIGNAL
+      input_values:
+        http_proxy: { get_param: http_proxy }
+        https_proxy: { get_param: https_proxy }
+        no_proxy: { get_param: no_proxy }
+
+outputs:

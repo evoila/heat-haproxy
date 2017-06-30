@@ -1,0 +1,6 @@
+resource_registry:
+  "Evoila::Deployment::CopyFile": src/deploy-copy-file.yaml
+  "Evoila::Deployment::HostsFile": src/deploy-hosts-file.yaml
+  "Evoila::Deployment::PrepareVolume": src/deploy-prepare-volume.yaml
+  "Evoila::Deployment::GenerateHtpasswd": src/deploy-generate-htpasswd.yaml
+  "Evoila::Deployment::Java": src/deploy-java-ubuntu.yaml

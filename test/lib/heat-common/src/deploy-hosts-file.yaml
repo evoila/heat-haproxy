@@ -1,0 +1,56 @@
+heat_template_version: 2015-04-30
+
+parameters:
+
+  server_map:
+    type: json
+    description: Map of servers to be used with OS::Heat::SoftwareDeploymentGroup
+
+  server_names:
+    type: comma_delimited_list
+    description: List of server names
+
+  server_addresses:
+    type: comma_delimited_list
+    description: List of server addresses
+
+  http_proxy:
+    type: string
+    description: "HTTP proxy URL"
+    default: ''
+
+  https_proxy:
+    type: string
+    description: "HTTPS proxy URL"
+    default: ''
+
+  no_proxy:
+    type: string
+    description: "Exceptions to proxy configuration"
+    default: ''
+
+resources:
+
+  write_hosts_file:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      group: script
+      config: { get_file: scripts/write_hosts.py }
+      inputs:
+        - name: hostnames
+          type: CommaDelimitedList
+          description: List of hostnames
+        - name: addresses
+          type: CommaDelimitedList
+          description: List of IP addresses 
+
+  deploy_hosts_file:
+    type: OS::Heat::SoftwareDeploymentGroup
+    properties:
+      config: { get_resource: write_hosts_file }
+      servers: { get_param: server_map }
+      input_values:
+        hostnames: { get_param: server_names }
+        addresses: { get_param: server_addresses }
+
+outputs:

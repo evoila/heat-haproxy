@@ -1,0 +1,14 @@
+#!/bin/bash
+
+TARGET_DIRECTORY=${TARGET_DIRECTORY}
+TARGET_FILENAME=${TARGET_FILENAME}
+CONTENT=${CONTENT}
+
+# Remove trailing slash if any
+TARGET_DIRECTORY=$(echo $TARGET_DIRECTORY | sed 's/\/$//')
+
+# Create directory and write file
+mkdir -p $TARGET_DIRECTORY
+cat <<EOF > $TARGET_DIRECTORY/$TARGET_FILENAME
+$CONTENT
+EOF

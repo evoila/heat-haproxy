@@ -1,0 +1,59 @@
+heat_template_version: 2015-04-30
+
+parameters:
+
+  server_map:
+    type: json
+    description: Map of servers to be used with OS::Heat::SoftwareDeploymentGroup
+
+  http_proxy:
+    type: string
+    description: "HTTP proxy URL"
+    default: ''
+
+  https_proxy:
+    type: string
+    description: "HTTPS proxy URL"
+    default: ''
+
+  no_proxy:
+    type: string
+    description: "Exceptions to proxy configuration"
+    default: ''
+
+  directory:
+    type: string
+ 
+  filename:
+    type: string
+
+  content:
+    type: string
+
+resources:
+
+  copy-file:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      group: script
+      config: { get_file: scripts/copy-file.sh }
+      inputs:
+        - name: TARGET_DIRECTORY
+        - name: TARGET_FILENAME
+        - name: CONTENT
+
+  deploy_copy_file:
+    type: OS::Heat::SoftwareDeploymentGroup
+    properties:
+      config: { get_resource: copy-file }
+      servers: { get_param: server_map }
+      signal_transport: HEAT_SIGNAL
+      input_values:
+        http_proxy: { get_param: http_proxy }
+        https_proxy: { get_param: https_proxy }
+        no_proxy: { get_param: no_proxy }
+        TARGET_DIRECTORY: { get_param: directory }
+        TARGET_FILENAME: { get_param: filename }
+        CONTENT: { get_param: content }
+
+outputs:

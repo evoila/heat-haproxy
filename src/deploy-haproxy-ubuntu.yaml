@@ -1,0 +1,88 @@
+heat_template_version: 2015-04-30
+description: Installs Nginx
+
+parameters:
+
+  server_map:
+    type: json
+    description: Map of servers to be used with OS::Heat::SoftwareDeploymentGroup
+
+  http_proxy:
+    type: string
+    description: "HTTP proxy URL"
+    default: ''
+
+  https_proxy:
+    type: string
+    description: "HTTPS proxy URL"
+    default: ''
+
+  no_proxy:
+    type: string
+    description: "Exceptions to proxy configuration"
+    default: ''
+
+  global_config:
+    type: string
+    description: Global HAproxy configuration options
+    default: ""
+
+  default_config:
+    type: string
+    description: Default HAproxy configuration options
+    default: ""
+
+  listener_configs:
+    type: comma_delimited_list
+
+resources:
+
+  # SOFTWARE CONFIGS
+
+  install:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      group: script
+      config: { get_file: scripts/ubuntu/1_install.sh }
+
+  configure:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      group: script
+      config: { get_file: scripts/ubuntu/2_configure.sh }
+      inputs:
+        - name: GLOBAL_CONFIG
+        - name: DEFAULT_CONFIG
+        - name: LISTENER_CONFIGS
+          type: CommaDelimitedList
+
+  # SOFTWARE DEPLOYMENTS
+
+  deploy_install:
+    type: OS::Heat::SoftwareDeploymentGroup
+    properties:
+      config: { get_resource: install }
+      servers: { get_param: server_map }
+      signal_transport: HEAT_SIGNAL
+      input_values:
+        http_proxy: { get_param: http_proxy }
+        https_proxy: { get_param: https_proxy }
+        no_proxy: { get_param: no_proxy }
+
+  deploy_configure:
+    type: OS::Heat::SoftwareDeploymentGroup
+    properties:
+      config: { get_resource: configure }
+      servers: { get_param: server_map }
+      signal_transport: HEAT_SIGNAL
+      input_values:
+        http_proxy: { get_param: http_proxy }
+        https_proxy: { get_param: https_proxy }
+        no_proxy: { get_param: no_proxy }
+        GLOBAL_CONFIG: { get_param: global_config }
+        DEFAULT_CONFIG: { get_param: default_config }
+        LISTENER_CONFIGS: { get_param: listener_configs }
+    depends_on:
+      - deploy_install
+
+outputs:

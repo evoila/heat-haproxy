@@ -1,0 +1,92 @@
+heat_template_version: 2015-04-30
+description: Generates HAProxy Listener Configuration 
+
+parameters:
+
+  server:
+    type: string
+    constraints:
+      - custom_constraint: nova.server
+
+  listener_name:
+    type: string
+
+  listener_options:
+    type: string
+    default: ""
+
+  bind_addr:
+    type: string
+    default: "0.0.0.0"
+
+  bind_port:
+    type: string
+
+  options:
+    type: comma_delimited_list
+    default: []
+
+  server_names:
+    type: comma_delimited_list
+    default: []
+
+  server_addrs:
+    type: comma_delimited_list
+    default: []
+
+  server_port:
+    type: string
+    default: ""
+
+  server_opts:
+    type: string
+    default: ""
+
+resources:
+
+  # SOFTWARE CONFIGS
+
+  generate:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      group: script
+      config: { get_file: scripts/generate_listener_config.sh }
+      inputs:
+        - name: LISTENER_NAME
+        - name: LISTENER_OPTIONS
+        - name: BIND_ADDR
+        - name: BIND_PORT
+        - name: OPTIONS
+          type: CommaDelimitedList
+        - name: SERVER_NAMES
+          type: CommaDelimitedList
+        - name: SERVER_ADDRS
+          type: CommaDelimitedList
+        - name: SERVER_PORT
+        - name: SERVER_OPTS
+      outputs:
+        - name: config
+
+  # SOFTWARE DEPLOYMENTS
+
+  deploy_generate:
+    type: OS::Heat::SoftwareDeployment
+    properties:
+      config: { get_resource: generate }
+      server: { get_param: server }
+      signal_transport: HEAT_SIGNAL
+      input_values:
+        LISTENER_NAME: { get_param: listener_name }
+        LISTENER_OPTIONS: { get_param: listener_options }
+        BIND_ADDR: { get_param: bind_addr }
+        BIND_PORT: { get_param: bind_port }
+        OPTIONS: { get_param: options }
+        SERVER_NAMES: { get_param: server_names }
+        SERVER_ADDRS: { get_param: server_addrs }
+        SERVER_PORT: { get_param: server_port }
+        SERVER_OPTS: { get_param: server_opts }
+
+outputs:
+
+  config:
+    value: { get_attr: [ deploy_generate, config ] }

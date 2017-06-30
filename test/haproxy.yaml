@@ -1,0 +1,114 @@
+heat_template_version: 2015-10-15
+
+parameter_groups:
+
+parameters:
+
+  key:
+    type: string
+    constraints:
+      - custom_constraint: nova.keypair
+
+  image:
+    type: string
+    constraints:
+      - custom_constraint: glance.image
+
+  flavor:
+    type: string
+    constraints:
+      - custom_constraint: nova.flavor
+
+  public_network:
+    type: string
+    constraints:
+      - custom_constraint: neutron.network
+
+  dns_nameservers:
+    type: comma_delimited_list
+    description: List of DNS servers
+    default:
+      - 8.8.8.8
+
+  name:
+    type: string
+    default: haproxy
+
+resources:
+
+  router:
+    type: OS::Neutron::Router
+    properties:
+      name: { get_param: name }
+      external_gateway_info:
+        network: { get_param: public_network }
+
+  simple_networking1:
+    type: Evoila::IaaS::NetworkLayout::Simple
+    properties:
+      name: { get_param: name }
+      network_cidr: 192.168.0.0/24
+      router: { get_resource: router }
+      dns_nameservers: { get_param: dns_nameservers }
+
+  security_group:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      name: { get_param: name }
+      rules:
+        - remote_ip_prefix: 0.0.0.0/0
+
+  cluster:
+    type: Evoila::IaaS::Cluster::Basic
+    properties:
+      count: 1
+      signals: 1
+      name: { get_param: name }
+      key: { get_param: key }
+      image: { get_param: image }
+      flavor: { get_param: flavor }
+      security_groups:
+        - { get_resource: security_group }
+      subnets:
+        - { get_attr: [simple_networking1, subnet] }
+      timeout: 500
+      extras:
+        volume_count: 0
+        volume_size: 0
+
+  stats_listener:
+    type: Evoila::Deployment::HAProxy::Listener
+    properties:
+      server: { get_attr: [ cluster, ids, 0 ] }
+      listener_name: stats
+      bind_port: 1984
+      options:
+        - "stats enable"
+        - "stats uri /"
+        - "stats refresh 15s"
+        - "stats realm Haproxy\ Stats"
+        - "stats auth admin:admin"
+
+  web_listener:
+    type: Evoila::Deployment::HAProxy::Listener
+    properties:
+      server: { get_attr: [ cluster, ids, 0 ] }
+      listener_name: web-service
+      listener_options: ""
+      bind_port: 80
+      options:
+        - "http-request del-header X-Forwarded-Proto if { ssl_fc }"
+      server_names: { get_attr: [ cluster, names ] }
+      server_addrs: { get_attr: [ cluster, first_addresses ] }
+      server_port: 8080
+      server_opts: "check inter 2000 rise 2 fall 5" 
+
+  haproxy:
+    type: Evoila::Deployment::HAProxy
+    properties:
+      server_map: { get_attr: [ cluster, attributes_id ] }
+      listener_configs:
+        - { get_attr: [ stats_listener, config ] }
+        - { get_attr: [ web_listener, config ] }
+
+outputs:

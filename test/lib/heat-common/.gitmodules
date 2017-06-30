@@ -1,0 +1,3 @@
+[submodule "test/lib/heat-iaas"]
+	path = test/lib/heat-iaas
+	url = git@github.com:evoila/heat-iaas.git

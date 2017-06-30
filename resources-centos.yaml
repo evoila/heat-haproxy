@@ -1,0 +1,2 @@
+resource_registry:
+  "Evoila::Deployment::HAProxy": src/deploy-haproxy-centos.yaml
